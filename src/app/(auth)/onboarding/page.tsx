@@ -9,6 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeBin } from "@/lib/validators/company";
+
+function isValidBin(bin: string): boolean {
+  return /^\d{12}$/.test(normalizeBin(bin));
+}
+
+function formatValidationError(data: {
+  error?: { message?: string; details?: { fieldErrors?: Record<string, string[]> } };
+}): string {
+  const fieldErrors = data.error?.details?.fieldErrors;
+  if (fieldErrors) {
+    const first = Object.values(fieldErrors).flat().find(Boolean);
+    if (first) return first;
+  }
+  return data.error?.message ?? "Failed to create company";
+}
 
 const steps = [
   { id: 1, title: "Company details" },
@@ -49,7 +65,7 @@ export default function OnboardingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: formData.name,
-        binNumber: formData.binNumber.replace(/-/g, ""),
+        binNumber: formData.binNumber,
         tinNumber: formData.tinNumber || undefined,
         vatType: formData.vatType,
         businessCategory: formData.businessCategory || undefined,
@@ -63,7 +79,7 @@ export default function OnboardingPage() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error?.message ?? "Failed to create company");
+      setError(formatValidationError(data));
       return;
     }
 
@@ -71,6 +87,13 @@ export default function OnboardingPage() {
   }
 
   function next() {
+    if (step === 2 && !isValidBin(formData.binNumber)) {
+      setError("BIN must be exactly 12 digits (e.g. 000123456789)");
+      return;
+    }
+
+    setError(null);
+
     if (step < steps.length) {
       setStep(step + 1);
     } else {
@@ -166,7 +189,9 @@ export default function OnboardingPage() {
               onChange={(e) => updateField("binNumber", e.target.value)}
               required
             />
-            <p className="text-xs text-muted-foreground">12-digit BIN number</p>
+            <p className="text-xs text-muted-foreground">
+              Exactly 12 digits — dashes are optional (e.g. 000123456789)
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="tin">TIN (optional)</Label>
@@ -232,7 +257,11 @@ export default function OnboardingPage() {
         <Button
           onClick={next}
           className="flex-1"
-          disabled={loading || (step === 1 && !formData.name) || (step === 2 && !formData.binNumber)}
+          disabled={
+            loading ||
+            (step === 1 && !formData.name) ||
+            (step === 2 && !formData.binNumber.trim())
+          }
         >
           {loading
             ? "Saving..."

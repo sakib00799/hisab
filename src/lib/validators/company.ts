@@ -1,13 +1,16 @@
 import { z } from "zod";
 
+export function normalizeBin(bin: string): string {
+  return bin.replace(/[\s-]/g, "");
+}
+
 export const binNumberSchema = z
   .string()
   .min(1, "BIN is required")
-  .regex(/^\d{12}$|^\d{9}-\d{4}$/, "BIN must be 12 digits or 000123456-0101 format");
-
-export function normalizeBin(bin: string): string {
-  return bin.replace(/-/g, "");
-}
+  .transform(normalizeBin)
+  .refine((value) => /^\d{12}$/.test(value), {
+    message: "BIN must be exactly 12 digits (e.g. 000123456789)",
+  });
 
 export const createCompanySchema = z.object({
   name: z.string().min(1, "Company name is required"),
