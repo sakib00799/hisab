@@ -2,9 +2,16 @@ import { z } from "zod";
 
 export const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  quantity: z.number().positive("Quantity must be positive"),
-  unitPrice: z.number().min(0, "Unit price must be non-negative"),
-  vatRate: z.number().min(0).max(100),
+  quantity: z.coerce
+    .number({ error: "Quantity is required" })
+    .positive("Quantity must be positive"),
+  unitPrice: z.coerce
+    .number({ error: "Unit price is required" })
+    .min(0, "Unit price must be non-negative"),
+  vatRate: z.coerce
+    .number({ error: "VAT rate is required" })
+    .min(0)
+    .max(100),
 });
 
 export const createInvoiceSchema = z.object({

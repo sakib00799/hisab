@@ -2,20 +2,46 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/format";
-import { createInvoiceSchema } from "@/lib/validators/invoice";
 import { z } from "zod";
 
-const formSchema = createInvoiceSchema.extend({
-  newCustomerName: z.string().optional(),
-});
+const invoiceFormSchema = z
+  .object({
+    customerId: z.string().optional(),
+    newCustomerName: z.string().optional(),
+    invoiceDate: z.string().min(1, "Issue date is required"),
+    dueDate: z.string().optional(),
+    notes: z.string().optional(),
+    description: z.string().min(1, "Description is required"),
+    quantity: z.coerce
+      .number({ error: "Quantity is required" })
+      .positive("Quantity must be positive"),
+    unitPrice: z.coerce
+      .number({ error: "Unit price is required" })
+      .min(0, "Unit price must be non-negative"),
+    vatRate: z.coerce
+      .number({ error: "VAT rate is required" })
+      .min(0)
+      .max(100),
+  })
+  .superRefine((data, ctx) => {
+    const hasCustomer =
+      Boolean(data.customerId) || Boolean(data.newCustomerName?.trim());
+    if (!hasCustomer) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Customer is required",
+        path: ["customerId"],
+      });
+    }
+  });
 
-type InvoiceFormData = z.infer<typeof formSchema>;
+type InvoiceFormData = z.output<typeof invoiceFormSchema>;
 
 interface Customer {
   id: string;
@@ -31,20 +57,25 @@ export function InvoiceForm() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<InvoiceFormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(invoiceFormSchema) as Resolver<InvoiceFormData>,
     defaultValues: {
       invoiceDate: new Date().toISOString().split("T")[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
-      items: [
-        { description: "", quantity: 1, unitPrice: 0, vatRate: 15 },
-      ],
+      description: "",
+      quantity: 1,
+      unitPrice: 0,
+      vatRate: 15,
     },
   });
+
+  const quantity = useWatch({ control, name: "quantity" }) ?? 0;
+  const unitPrice = useWatch({ control, name: "unitPrice" }) ?? 0;
+  const vatRate = useWatch({ control, name: "vatRate" }) ?? 0;
 
   useEffect(() => {
     fetch("/api/customers")
@@ -52,22 +83,22 @@ export function InvoiceForm() {
       .then((d) => setCustomers(d.data ?? []));
   }, []);
 
-  const items = watch("items");
-  const item = items[0];
-  const amount = (Number(item?.quantity) || 0) * (Number(item?.unitPrice) || 0);
-  const vatRate = Number(item?.vatRate) || 0;
-  const vatAmount = Math.round((amount * vatRate) / 100);
+  const amount = Number(quantity) * Number(unitPrice);
+  const vatAmount = Math.round((amount * Number(vatRate)) / 100);
   const total = amount + vatAmount;
+
+  const customerError =
+    errors.newCustomerName?.message ?? errors.customerId?.message;
 
   async function onSubmit(data: InvoiceFormData) {
     setError(null);
     let customerId = data.customerId;
 
-    if (useNewCustomer && data.newCustomerName) {
+    if (useNewCustomer && data.newCustomerName?.trim()) {
       const custRes = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.newCustomerName }),
+        body: JSON.stringify({ name: data.newCustomerName.trim() }),
       });
       const custData = await custRes.json();
       if (!custRes.ok) {
@@ -90,7 +121,14 @@ export function InvoiceForm() {
         invoiceDate: data.invoiceDate,
         dueDate: data.dueDate,
         notes: data.notes,
-        items: data.items,
+        items: [
+          {
+            description: data.description,
+            quantity: data.quantity,
+            unitPrice: data.unitPrice,
+            vatRate: data.vatRate,
+          },
+        ],
       }),
     });
 
@@ -141,8 +179,8 @@ export function InvoiceForm() {
               ))}
             </select>
           )}
-          {errors.customerId && (
-            <p className="text-xs text-danger">{errors.customerId.message}</p>
+          {customerError && (
+            <p className="text-xs text-danger">{customerError}</p>
           )}
         </div>
 
@@ -151,12 +189,10 @@ export function InvoiceForm() {
           <Input
             id="description"
             placeholder="Supply of goods — June 2026"
-            {...register("items.0.description")}
+            {...register("description")}
           />
-          {errors.items?.[0]?.description && (
-            <p className="text-xs text-danger">
-              {errors.items[0].description.message}
-            </p>
+          {errors.description && (
+            <p className="text-xs text-danger">{errors.description.message}</p>
           )}
         </div>
 
@@ -166,8 +202,12 @@ export function InvoiceForm() {
             id="quantity"
             type="number"
             step="0.001"
-            {...register("items.0.quantity", { valueAsNumber: true })}
+            min="0"
+            {...register("quantity")}
           />
+          {errors.quantity && (
+            <p className="text-xs text-danger">{errors.quantity.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -175,9 +215,13 @@ export function InvoiceForm() {
           <Input
             id="unitPrice"
             type="number"
+            min="0"
             placeholder="85000"
-            {...register("items.0.unitPrice", { valueAsNumber: true })}
+            {...register("unitPrice")}
           />
+          {errors.unitPrice && (
+            <p className="text-xs text-danger">{errors.unitPrice.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -185,8 +229,13 @@ export function InvoiceForm() {
           <Input
             id="vatRate"
             type="number"
-            {...register("items.0.vatRate", { valueAsNumber: true })}
+            min="0"
+            max="100"
+            {...register("vatRate")}
           />
+          {errors.vatRate && (
+            <p className="text-xs text-danger">{errors.vatRate.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
