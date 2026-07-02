@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const invoiceItemSchema = z.object({
-  description: z.string().min(1, "Description is required"),
+  description: z
+    .string()
+    .trim()
+    .min(1, "Description is required")
+    .max(500, "Description must be 500 characters or less"),
   quantity: z.coerce
     .number({ error: "Quantity is required" })
     .positive("Quantity must be positive"),
