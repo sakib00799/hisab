@@ -1,7 +1,9 @@
 import { jsonError } from "@/lib/api-response";
 import { requireCompany } from "@/lib/auth/company-context";
-import { htmlToPdfResponse } from "@/lib/pdf";
+import { pdfResponse } from "@/lib/pdf";
 import * as vatService from "@/lib/services/vat.service";
+
+export const maxDuration = 60;
 
 type Params = { params: Promise<{ year: string; month: string }> };
 
@@ -14,7 +16,7 @@ export async function GET(_req: Request, { params }: Params) {
       parseInt(year, 10),
       parseInt(month, 10)
     );
-    return htmlToPdfResponse(html, `mushak-9.1-${year}-${month}.html`);
+    return await pdfResponse(html, `mushak-9.1-${year}-${month}.pdf`);
   } catch (error) {
     return jsonError(error);
   }

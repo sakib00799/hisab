@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 import { normalizeBin } from "@/lib/validators/company";
 
 function isValidBin(bin: string): boolean {
@@ -83,6 +84,7 @@ export default function OnboardingPage() {
       return;
     }
 
+    track("onboarding_complete");
     router.push("/dashboard");
   }
 

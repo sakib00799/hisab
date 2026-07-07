@@ -32,6 +32,15 @@ export function AuthShell({ children, title, subtitle }: AuthLayoutProps) {
         <p className="mt-6 text-center text-xs text-muted-foreground">
           Business accounting made simple for Bangladesh
         </p>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          <Link href="/privacy" className="hover:text-foreground hover:underline">
+            Privacy
+          </Link>
+          {" · "}
+          <Link href="/terms" className="hover:text-foreground hover:underline">
+            Terms
+          </Link>
+        </p>
       </div>
     </div>
   );

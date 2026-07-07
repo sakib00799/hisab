@@ -172,27 +172,32 @@ export async function createInvoice(
   const lineItems = buildItems(input.items);
   const totals = sumTotals(lineItems);
 
-  return db.$transaction(async (tx) => {
-    const invoiceNumber = await getNextInvoiceNumber(tx, ctx.companyId);
+  return db.$transaction(
+    async (tx) => {
+      const invoiceNumber = await getNextInvoiceNumber(tx, ctx.companyId);
 
-    return tx.invoice.create({
-      data: {
-        companyId: ctx.companyId,
-        customerId: input.customerId,
-        invoiceNumber,
-        invoiceDate: new Date(input.invoiceDate),
-        dueDate: input.dueDate ? new Date(input.dueDate) : null,
-        notes: input.notes,
-        subtotal: totals.subtotal,
-        vatTotal: totals.vatTotal,
-        total: totals.total,
-        items: {
-          create: lineItems.map(toInvoiceItemCreate),
+      return tx.invoice.create({
+        data: {
+          companyId: ctx.companyId,
+          customerId: input.customerId,
+          invoiceNumber,
+          invoiceDate: new Date(input.invoiceDate),
+          dueDate: input.dueDate ? new Date(input.dueDate) : null,
+          notes: input.notes,
+          subtotal: totals.subtotal,
+          vatTotal: totals.vatTotal,
+          total: totals.total,
+          items: {
+            create: lineItems.map(toInvoiceItemCreate),
+          },
         },
-      },
-      include: { customer: true, items: true },
-    });
-  });
+        include: { customer: true, items: true },
+      });
+    },
+    // Concurrent creates serialize on the InvoiceSequence row lock; allow
+    // enough time for a queue of writers instead of failing at the 5s default.
+    { timeout: 15_000 }
+  );
 }
 
 export async function updateInvoice(

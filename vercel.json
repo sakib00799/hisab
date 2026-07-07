@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/vat-reminder",
+      "schedule": "0 4 22 * *"
+    }
+  ]
+}

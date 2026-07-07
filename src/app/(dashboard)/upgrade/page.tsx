@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { TopBar } from "@/components/layout/top-bar";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 import { Check, Sparkles } from "lucide-react";
 
 const plans = [
@@ -36,6 +37,7 @@ export default function UpgradePage() {
   const [error, setError] = useState<string | null>(null);
 
   async function upgrade(plan: "BUSINESS" | "PRO") {
+    track("upgrade_clicked", { plan });
     setLoading(plan);
     setError(null);
     const res = await fetch("/api/subscription/upgrade", {

@@ -1,6 +1,10 @@
 import { withSentryConfig } from '@sentry/nextjs';
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  },
+};
 
 export default withSentryConfig(nextConfig, {
   // For all available options, see:

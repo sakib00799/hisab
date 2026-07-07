@@ -1,0 +1,5 @@
+Date,Description,Debit,Credit,Balance
+01/07/2026,Opening balance,,,50000.00
+02/07/2026,bKash transfer to supplier,"12,500.00",,37500.00
+10/07/2026,Office rent July,15000.00,,22500.00
+15/07/2026,Customer payment INV-0001,,"25,000.00",47500.00

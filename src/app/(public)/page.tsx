@@ -87,7 +87,16 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Hisab. Made for Bangladesh businesses.
+        <p>© {new Date().getFullYear()} Hisab. Made for Bangladesh businesses.</p>
+        <p className="mt-2">
+          <Link href="/privacy" className="hover:text-foreground hover:underline">
+            Privacy Policy
+          </Link>
+          {" · "}
+          <Link href="/terms" className="hover:text-foreground hover:underline">
+            Terms of Service
+          </Link>
+        </p>
       </footer>
     </div>
   );

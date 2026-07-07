@@ -5,6 +5,7 @@ import { requireCompany } from "@/lib/auth/company-context";
 import { getCompanyPlan, hasPlan } from "@/lib/auth/plan-gate";
 import { PlanType } from "@/generated/prisma";
 import * as vatService from "@/lib/services/vat.service";
+import { TrackEvent } from "@/components/providers/track-event";
 import { VatActions } from "@/components/vat/vat-actions";
 import { VatExportBanner } from "@/components/vat/vat-export-banner";
 import { VatMonthlyChart } from "@/components/vat/vat-monthly-chart";
@@ -59,6 +60,7 @@ export default async function VatReportPage() {
   return (
     <>
       <TopBar title="VAT Report" />
+      <TrackEvent event="vat_viewed" />
       <main className="space-y-6 p-6">
         {/* Period & deadline banner */}
         <div
